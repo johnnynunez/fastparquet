@@ -1,0 +1,49 @@
+# Fork-only verification: run the upstream test suite against the exact
+# win_arm64 wheels produced by buildWin in run 38311271235 (no rebuild).
+name: Verify Windows ARM64 wheels (tests)
+on:
+  push:
+    branches: [verify/windows-arm64-wheels-tests]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    runs-on: windows-11-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
+    name: verify windows-11-arm py${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/download-artifact@v7
+        with:
+          name: wheels-windows-11-arm-arm64
+          path: wheelhouse
+          run-id: 38311271235
+          github-token: ${{ github.token }}
+      - name: Install exact wheel and test deps (as test_wheel.yaml)
+        shell: bash -l {0}
+        run: |
+          set -ex
+          python -c "import sys, sysconfig, platform; print(sys.version, sysconfig.get_platform(), platform.machine()); assert sysconfig.get_platform() == 'win-arm64'"
+          python -m pip install -U pip
+          python -m pip install "pandas<3"
+          python -m pip install --pre --only-binary fastparquet --find-links wheelhouse "fastparquet==2026.9.1.dev2"
+          python -m pip install pytest
+          python -m pip list
+      - name: Run tests
+        shell: bash -l {0}
+        run: |
+          mv ./fastparquet ./fastparquet-src
+          python -c "import fastparquet, fastparquet.speedups, fastparquet.cencoding as c; print(fastparquet.__version__, c.__file__); assert fastparquet.__version__ == '2026.9.1.dev2'"
+          pytest --verbose --junitxml=junit-${{ matrix.python-version }}.xml
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: junit-win-arm64-${{ matrix.python-version }}
+          path: junit-*.xml
