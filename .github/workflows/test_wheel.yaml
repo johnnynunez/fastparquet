@@ -38,6 +38,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch upstream release tags (fork verification only; setuptools_scm needs them)
+        shell: bash
+        run: git fetch --no-recurse-submodules https://github.com/dask/fastparquet.git '+refs/tags/*:refs/tags/*'
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
