@@ -14,8 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13", "3.14", "3.14t"]
-        numpy: ["numpy<2.5", "numpy==2.5.4"]
-    name: verify windows-11-arm py${{ matrix.python-version }} ${{ matrix.numpy }}
+        numpy: ["numpy"]
+        pandas: ["pandas>=3"]
+    name: verify windows-11-arm py${{ matrix.python-version }} ${{ matrix.numpy }} ${{ matrix.pandas }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,7 +34,7 @@ jobs:
           set -ex
           python -c "import sys, sysconfig, platform; print(sys.version, sysconfig.get_platform(), platform.machine()); assert sysconfig.get_platform() == 'win-arm64'"
           python -m pip install -U pip
-          python -m pip install "${{ matrix.numpy }}" "pandas<3"
+          python -m pip install --only-binary pandas "${{ matrix.numpy }}" "${{ matrix.pandas }}"
           python -m pip install --pre --only-binary fastparquet --find-links wheelhouse "fastparquet==2026.9.1.dev2"
           python -m pip install pytest
           python -m pip list
